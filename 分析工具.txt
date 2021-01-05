@@ -1,0 +1,34 @@
+logcat | grep -i Timing
+getprop | grep -i boottime
+logcat -b events|grep boot
+logcat -s ServiceManager |grep Waiting
+logcat -s SystemServer
+
+bootchart，在system/core/init/README.md中有说明怎么启动，一般是在/data/bootchart/下面创建enabled文件，可能需要在创建start文件并写入需要采集的时间。
+	如果没有要求创建start文件，那么结束时间可能就是在init.rc中指定了，如果需要延长，可以在init.rc中修改。启动完成后会在/data/bootchart/下面生成几个文件。
+	具体操作看bootchart文件。
+
+
+atrace，就是systrace，功能比较强大，我是在atrace.rc中启动的，修改了service：
+		service boottrace /system/bin/atrace -c -b 64000 -z gfx disk sched freq am wm ss -t 10 -o /data/local/tmp/boot_trace
+			oneshot
+	然后在init.rc中启动：
+		start boottrace
+	atrace 的指令可以在终端查看，atrace -h
+
+	开机启动后可以把/data/local/tmp/boot_trace考出来，用”https://ui.perfetto.dev/#!/viewer“来查看。
+
+
+kernel log
+	注释掉printk.c中如下逻辑，就可以刷更多的log，不会被过滤。
+	if (!(devkmsg_log & DEVKMSG_LOG_MASK_ON)) {
+		if (!___ratelimit(&user->rs, current->comm))
+			return ret;
+	}
+
+
+适当时候可以用dumpsys查看当前环境信息
+	dumpsys activity
+	dumpsys window
+	dumpsys SurfaceFlinger
+	
